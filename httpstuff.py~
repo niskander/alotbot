@@ -1,0 +1,42 @@
+# httpstuff.py
+
+import urllib2
+import urllib
+import cookielib
+from sys import exit
+
+class HttpStuff:
+    def __init__(self):
+        # header
+        user_agent = 'Just myself / testing'
+        self.headers = { 'User-Agent' : user_agent }
+
+        # cookie handling
+        self.cj = cookielib.LWPCookieJar()
+        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cj))
+        urllib2.install_opener(self.opener)
+        
+    def postrequest(self, url, data):
+        data_encoded = urllib.urlencode(data)
+        req = urllib2.Request(url, data_encoded, self.headers)
+        response = urllib2.urlopen(req)
+        return response
+
+    def getrequest(self, url):
+        attemptsremaining = 10
+        while attemptsremaining > 0:
+            try:
+                response = urllib2.urlopen(url, timeout=60)
+                break
+            except urllib2.HTTPError, e:
+                print 'GET Request failed. URL = %s' % url
+                print 'Code returned: %d' % e.code
+                print 'Retrying in a few seconds...'
+                time.sleep(30)
+                attemptsremaining -= 1
+        if attemptsremaining == 0:
+            print 'Not gonna keep on trying. Bye.'
+            exit(1)
+        return response
+
+http = HttpStuff()

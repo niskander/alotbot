@@ -1,0 +1,14 @@
+# alotbot.py
+
+import reddituser
+
+class AlotBot(RedditBot):
+    def __init__(self):
+        self.username = 'likethisalot'
+        self.password = 'alotbotpassword'
+        super(RedditBot, self).__init__(self.username, self.password, \
+                                        'Chrome / I like this alot', \
+                                        wantcomments=True, wantposts=True, \
+                                        subredditlist=['all'], \
+                                        fetchblocksize=10, \
+                                        maxcommentdepth=10)
