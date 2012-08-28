@@ -8,7 +8,6 @@ for posts.
 import json
 import requesthandler
 from customexceptions import *
-from sys import exit
 
 REDDITURL = 'http://reddit.com'
 
@@ -76,9 +75,9 @@ class RedditIterator(object):
     flipping. There's currently nothing that retrieves 'more' comments.)
     """
     # subreddits: List of subreddits to search
-    def __init__(self, subreddits=['all'], query=None, blocksize=50):
+    def __init__(self, subreddits=None, query=None, blocksize=50):
         if not subreddits: subreddits = ['all']
-        self.subredditlist = subreddits.join('+')
+        self.subredditlist = '+'.join(subreddits)
         # TODO: Make sure subreddit names are valid
 
         self.query = query

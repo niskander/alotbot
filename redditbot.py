@@ -19,8 +19,8 @@ class RedditUser(object):
         self.username = username
         self.secret = secret
         self.useragent = useragent
-        http.setuseragent(useragent)
-        self.cookiename = 'reddit%scookie.lwp' % self.username
+        requesthandler.reqhandler.setuseragent(useragent)
+        self.cookiename = ('reddit%scookie.lwp' % self.username)
         self.loggedin = False
         self.login()
         return
@@ -30,7 +30,7 @@ class RedditUser(object):
         data['user'] = self.username
         data['passwd'] = self.secret
         data['api_type'] = 'json'
-        url = '%s/%s' % (LOGINCALL, self.username)
+        url = ('%s/%s' % (LOGINCALL, self.username))
         response = requesthandler.reqhandler.postrequest(url, data)
         js = json.loads(response.read())
         # modhash is needed when posting
@@ -44,6 +44,8 @@ class RedditUser(object):
     
     def reply(self, text, parent_type, parent_id, parent_kind):
         # TODO: cookie
+        #if not requesthandler.reqhandler.cj.isexpired:
+        #    print 'Cookie is not expired.'
         if not self.loggedin or self.modhash is None:
             context = 'posting \'%s\' as %s in reply to %s with id %s' % \
                       (text, self.username, parent_type, parent_id)
@@ -53,9 +55,11 @@ class RedditUser(object):
         data = {}
         data['uh'] = self.modhash
         data['text'] = text
-        data['thing_id'] = '%s_%s' % (parent_kind, parent_id)
+        data['thing_id'] = ('%s_%s' % (parent_kind, parent_id))
+        data['parent'] = data['thing_id']
 
         response = requesthandler.reqhandler.postrequest(REPLYCALL, data)
+        #print response.read()
         return response
 
 
@@ -63,17 +67,19 @@ class RedditBot(RedditUser):
     """Extends RedditUser. Adds functions to iterate over posts/comments
     and compose replies to them if desired.
     """
-    def __init__(self, \
-                 username, secret, useragent, \
-                 wantcomments=True, wantposts=False, \
-                 fetchblocksize=50, maxcommentdepth=5, \
-                 subredditlist=['all'])
+    def __init__(self, username, secret, useragent, wantcomments=True, wantposts=False, fetchblocksize=50, maxcommentdepth=5, subredditlist=['all']):
         super(RedditBot, self).__init__(username, secret, useragent)
         self.wantcomments = wantcomments
         self.wantposts = wantposts
         self.redditerator = redditthings.RedditIterator( \
             subreddits=subredditlist, blocksize=fetchblocksize)
         self.maxcommentdepth = maxcommentdepth
+        self.replyhistory = open('%shistory.txt' % self.username, 'r+')
+        self.replyhistory_str = self.replyhistory.read()
+        #print 'reply history: %s' % self.replyhistory_str
+        #print 'file: %s' % str(self.replyhistory)
+        #exit(1)
+        # This will need to be changed because it's not very scalable
         
     def roamposts(self):
         """Iterates over posts, considers them for replying and relplies
@@ -84,7 +90,8 @@ class RedditBot(RedditUser):
                 post = self.redditerator.nextpost()
                 if self.wantposts and self.wantpost(post):
                     replytext = self.composereply(post)
-                    self.reply(replytext, 'thread', post.kind, post.id)
+                    self.reply(replytext, 'thread', post.id, post.kind)
+                    self.replyhistory.write('%s\n' % post.name)
                 if self.wantcomments:
                     comments_js = self.redditerator.fetchcomments(post)
                     self.roamcomments(comments_js, 0)
@@ -93,9 +100,10 @@ class RedditBot(RedditUser):
             except FailedFetch as f:
                 print f.message
                 break
-            except LoginRequired as l:
+            except LoginRequired:
                 self.login()
                 continue
+        self.replyhistory.close()
 
     def roamcomments(self, comments_js, depth):
         """Recursively iterates over comments/comment replies, and replies
@@ -107,20 +115,21 @@ class RedditBot(RedditUser):
             comment = redditthings.RedditComment(comment_dict['data'])
             if self.wantcomment(comment):
                 replytext = self.composereply(comment)
-                self.reply(replytext, 'comment', comment.kind, comment.id)
+                self.reply(replytext, 'comment', comment.id, comment.kind)
+                self.replyhistory.write('%s\n' % comment.name)
             self.roamcomments(comment.replies_js, depth+1)
 
     def wantpost(self, post):
         """Returns True if the post is to be replied to; False otherwise."""
-        print 'Not replying to %s' % post.title
+        print 'post: Not replying to %s' % post.title
         return False
 
     def wantcomment(self, comment):
         """Returns True if the comment is to be replied to; False otherwise."""
-        print 'Not replying to %s' % comment.body[:20]
+        print 'comment: Not replying to %s' % comment.body[:20]
         return False
 
     def composereply(self, thing):
         """Returns the text of a reply to a comment or a post."""
         return ''
-    
+

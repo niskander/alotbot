@@ -5,8 +5,8 @@ import urllib2
 import urllib
 import cookielib
 import time
-from exceptions import FailedFetch
-from sys import exit
+from customexceptions import *
+
 
 class RequestHandler:
     """Handles http requests."""
@@ -24,13 +24,14 @@ class RequestHandler:
         # as I should
         
     def setuseragent(self, useragent):
-        self.headers { 'User-Agent' : useragent }
+        self.headers = { 'User-Agent' : useragent }
     
     def savecookiefile(self, cookiename):
         self.cj.save(cookiename)
         
     def postrequest(self, url, data):
         data_encoded = urllib.urlencode(data)
+        print 'encoded data: %s' % str(data_encoded)
         request = urllib2.Request(url, data_encoded, self.headers)
         return self.getresponse(request)
 
@@ -58,12 +59,12 @@ class RequestHandler:
                 response = urllib2.urlopen(request, timeout=60)
                 break
             except urllib2.HTTPError as e:
-                print 'Http request failed. Request = %s' % request.str()
+                #print 'Http request failed. Request = %s' % request.str()
                 print 'Error code: %d. Retrying...' % e.code
                 time.sleep(5)
                 attemptsremaining -= 1
         if attemptsremaining == 0:
-            raise FailedFetch(self, 'nil', 'nil', e.code)
+            raise FailedFetch('nil', 'nil', e.code)
         self.lastapicall = time.clock()
         return response
 
