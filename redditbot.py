@@ -67,7 +67,7 @@ class RedditBot(RedditUser):
     """Extends RedditUser. Adds functions to iterate over posts/comments
     and compose replies to them if desired.
     """
-    def __init__(self, username, secret, useragent, wantcomments=True, wantposts=False, fetchblocksize=50, maxcommentdepth=5, subredditlist=['all']):
+    def __init__(self, username, secret, useragent, wantcomments=True, wantposts=False, fetchblocksize=50, maxcommentdepth=5, subredditlist=['all'], restart=False):
         super(RedditBot, self).__init__(username, secret, useragent)
         self.wantcomments = wantcomments
         self.wantposts = wantposts
@@ -76,6 +76,11 @@ class RedditBot(RedditUser):
         self.maxcommentdepth = maxcommentdepth
         self.replyhistory = open('%shistory.txt' % self.username, 'r+')
         self.replyhistory_str = self.replyhistory.read()
+        self.processhistory = open('alotbot/%ssession.txt' % self.username, 'r+')
+        self.after = self.processhistory.read()
+        if not restart:
+            self.redditerator.after = self.after
+        self.skip = False
         #print 'reply history: %s' % self.replyhistory_str
         #print 'file: %s' % str(self.replyhistory)
         #exit(1)
@@ -88,12 +93,14 @@ class RedditBot(RedditUser):
         while True:
             try:
                 post = self.redditerator.nextpost()
+                self.after = post.name
                 if self.wantposts and self.wantpost(post):
                     replytext = self.composereply(post)
                     self.reply(replytext, 'thread', post.id, post.kind)
                     self.replyhistory.write('%s\n' % post.name)
                 if self.wantcomments:
                     comments_js = self.redditerator.fetchcomments(post)
+                    #if self.processcomments(comments_js):
                     self.roamcomments(comments_js, 0)
             except KeyboardInterrupt:
                 break
@@ -104,6 +111,9 @@ class RedditBot(RedditUser):
                 self.login()
                 continue
         self.replyhistory.close()
+        self.processhistory.seek(0)
+        self.processhistory.write(self.after)
+        self.processhistory.close()
 
     def roamcomments(self, comments_js, depth):
         """Recursively iterates over comments/comment replies, and replies
@@ -115,21 +125,25 @@ class RedditBot(RedditUser):
             comment = redditthings.RedditComment(comment_dict['data'])
             if self.wantcomment(comment):
                 replytext = self.composereply(comment)
-                self.reply(replytext, 'comment', comment.id, comment.kind)
-                self.replyhistory.write('%s\n' % comment.name)
+                if not self.skip:
+                    self.reply(replytext, 'comment', comment.id, comment.kind)
+                    self.replyhistory.write('%s\n' % comment.name)
             self.roamcomments(comment.replies_js, depth+1)
 
     def wantpost(self, post):
         """Returns True if the post is to be replied to; False otherwise."""
-        print 'post: Not replying to %s' % post.title
+        #print 'post: Not replying to %s' % post.title
         return False
 
     def wantcomment(self, comment):
         """Returns True if the comment is to be replied to; False otherwise."""
-        print 'comment: Not replying to %s' % comment.body[:20]
+        #print 'comment: Not replying to %s' % comment.body[:20]
         return False
 
     def composereply(self, thing):
         """Returns the text of a reply to a comment or a post."""
         return ''
+
+    def processcomments(self, post):
+        return True
 

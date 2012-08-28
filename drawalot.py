@@ -3,7 +3,6 @@
 
 """A module for drawing alots using pictures from the internet
 Required 3rd party libraries: 
-    - flickrapi
     - python image manipulation (pythonware.com/library/pil)
     - Google-Search (https://github.com/BirdAPI/Google-Search-API)
 """
@@ -15,22 +14,35 @@ import math
 import flickrapi
 import urllib
 import webbrowser
-import oauth2 as oauth
+import requesthandler
+import os.path
+import json
+import pycurl
+import StringIO
+from base64 import b64encode
 from google import *
 
 
-COOKIECUTTER = 'alots/cookiecutter.png'
-FLICKRFILE = 'flickraccount.txt' # contains apikey & apisecret
-IMGURFILE = 'imguraccount.txt'
-FONTFILE = 'interstate-black.ttf'
-IMGUR_ACCESS = 'https://api.imgur.com/oauth/request_token'
-IMGUR_REQUEST = 'https://api.imgur.com/oauth/authorize'
-IMGUR_AUTHORIZE = 'https://api.imgur.com/oauth/access_token'
+COOKIECUTTER = 'alotbot/images/cookiecutter.png'
+FLICKRFILE = 'alotbot/flickraccount.txt' # contains apikey & apisecret
+IMGURFILE = 'alotbot/imguraccount.txt'
+FONTFILE = 'alotbot/interstate-black.ttf'
+IMGURUPLOAD = 'http://api.imgur.com/2/upload.json'
+IMAGEDIR = 'alotbot/images/'
 WIDTH = 0
 HEIGHT = 1
 
 
+class CurlBuffer:
+   def __init__(self):
+       self.contents = ''
+
+   def body_callback(self, buf):
+       self.contents = self.contents + buf
+
+
 class DrawAlot(object):
+    """A module for drawing alot of things"""
     def __init__(self, humanaid=True):
         self.cookiecutter = Image.open(COOKIECUTTER)
         self.alotwidth = self.cookiecutter.size[WIDTH]
@@ -44,9 +56,8 @@ class DrawAlot(object):
 
         # Imgur api
         line = open(IMGURFILE).read().splitlines()
-        self.imgurkey = lines[0]
-        self.imgursecret = lines[1]
-        
+        #self.imgurkey = 'c515d926dddc9aa67cf84d13ed3e99d0'
+        self.imgurkey = '0f327f3057bbbecb022a2169a4cc51da'
         self.font = ImageFont.truetype(FONTFILE, 25)
         self.humanaid = humanaid
 
@@ -73,51 +84,19 @@ class DrawAlot(object):
         tile = self.gettile(thing)
         if tile is None: return None
         tiled = self.tileimage(tile, (self.alotwidth, self.alotheight))
-        tiledalot = Image.composite(self.cookiecutter, tiled, mask=self.cookiecutter)
+        tiledalot = Image.composite(self.cookiecutter,
+                                    tiled,
+                                    mask=self.cookiecutter)
         painter = ImageDraw.Draw(tiledalot)
-        painter.text((10, 10), 'AN ALOT OF %s' % thing.upper(), fill=(0, 0, 0), font=self.font)
+        painter.text((10, 10),
+                     'AN ALOT OF %s' % thing.upper(),
+                     fill=(0, 0, 0), font=self.font)
         tiledalot.show()
         return tiledalot
-    
-    '''
-    def getflickrimages(self, thing):
-        """Returns an image of 'name' from the internet"""
-        # all possible options:
-        # http://www.flickr.com/services/api/flickr.photos.search.html
-        options = {}
-        options['query'] = thing
-        options['sort'] = 'relevance'
-        options['tags'] = thing
-        #options['content_type'] = 1
-        options['media'] = 'photos'
-        options['extras'] = 'url_m'
-        options['per_page'] = 40
-        #options['is_getty'] = True
-        results = self.flickr.photos_search(**options)
-        if results.attrib['stat'] == 'ok':
-            photos = results.find('photos').findall('photo')
-            for photo in photos:
-                webbrowser.open(photo.attrib['url_m'])
-                answer = raw_input('Accept as image of %s? (\'y\', \'n\', or \'abort\') ' % name)
-                # TODO: Find a way to automatically get good images
-                # so that human inspection is not required
-                # (I think adding 'picture of' to the query helps a bit)
-                if answer == 'y':
-                    tilesize = input('Enter the tile size: ')
-                    imageurl = photo.attrib['url_m']
-                    (filename, headers) = urllib.urlretrieve(imageurl)
-                    tile = Image.open(filename)
-                    tile = tile.resize(tilesize)
-                    return tile
-                elif answer == 'abort':
-                    return None
-        else:
-            # TODO: raise FailedFetch
-            pass
-            return None
-    '''
         
     def gettile(self, thing):
+        """Search google for a picture of 'thing' to use as a tile.
+        Returns the an Image object."""
         options = ImageOptions()
         results = Google.search_images(thing, options)
         if self.humanaid:
@@ -126,15 +105,24 @@ class DrawAlot(object):
             return self.urltoimage(results[0]['link'])
 
     def urltoimage(self, url):
+        #print url
         (filename, headers) = urllib.urlretrieve(url)
+        #print headers
+        #print filename
         image = Image.open(filename)
         return image
+        # TODO: This doesn't work with pictures from wikiepedia
 
     def getapprovedtile(self, photos, thing):
+        """Go through the list of photos until one is approved by a human
+        as being a picture of 'thing' or the operation is aborted.
+        """
         for photo in photos:
             url = photo.link
+            if 'wikimedia' in url.lower(): continue
             webbrowser.open(url)
-            answer = raw_input('Image of %s? (\'y\', \'n\', or \'abort\') ' % thing)
+            prompt = 'Image of %s? (\'y\', \'n\', or \'abort\') ' % thing
+            answer = raw_input(prompt)
             # TODO: Find a way to automatically get good images
             if answer == 'y':
                 tile = self.urltoimage(url)
@@ -145,36 +133,58 @@ class DrawAlot(object):
                 return tile
             elif answer == 'abort':
                 return None
-        
+                
+    def uploadimage(self, filename):
+        """Uploads the image at 'filename' to imgur and returns the url"""
+        requesturl = IMGURUPLOAD
+        data = {}
+        data['key'] = self.imgurkey
+        data['image'] = b64encode(open(filename, 'rb').read())
+        '''
+        response = requesthandler.reqhandler.postrequest(requesturl, data)
+        s = response.read()
+        print s
+        js = json.loads(s)
+        try:
+            url = js['upload']['links']['original']
+            print url
+            return url
+        except KeyError:
+            # raise exception
+            pass
+        '''
+        b = CurlBuffer()
+        c = pycurl.Curl()
+        values = [ \
+          ("key", self.imgurkey), \
+          ("image", data['image'])]
+        c.setopt(c.URL, "http://api.imgur.com/2/upload.json")
+        c.setopt(c.HTTPPOST, values)
+        c.setopt(c.WRITEFUNCTION, b.body_callback)
+        c.perform()
+        c.close()
+        print b.contents
+        js = json.loads(b.contents)
+        url = js['upload']['links']['original']
+        # TODO: exception
+        print url
+        return url
 
-if __name__ == '__main__':
-    d = DrawAlot()
-    d.tiledalot('beer')
+    def drawandupload(self, thing):
+        """Draws an alot of 'thing'; uploads to imgur; returns url"""
+        filename = self.constructfilename(thing)
+        if not os.path.isfile(filename):
+            alot = self.tiledalot(thing)
+            #alot = alot.resize((200, 150))
+            alot.save(filename, 'png')
+        url = self.uploadimage(filename)
+        return url
+
+    def constructfilename(self, thing):
+        return IMAGEDIR + 'alotof' + thing + '.png'
 
 '''
-    def tileimagelist(urls, size):
-        """Returns an image of size 'size' of the images in the list 'urls'
-        tiled.
-        """
-        tilesize = (100, 100)
-        tiled = Image.new('RGBA', size, (255, 255, 255, 255))
-        i = 0
-        x = 0
-        y = 0
-        # TODO: This could iterate over the image several times, so save
-        # all of them to disk first (or make sure that that doesn't happen)
-        while i < len(urls):
-            (filename, headers) = urllib.urlretrieve(urls[i].attrib['url_m'])
-            tile = Image.open(filename)
-            tile = tile.resize(tilesize)
-            tiled.paste(tile, (x, y))
-            i += 1
-            if i >= len(urls): i = 0
-            x += tilesize[WIDTH]
-            if x >= size[WIDTH]:
-                y += tilesize[HEIGHT]
-                x = 0
-                if y >= size[HEIGHT]: break
-        #tiled.show()
-        return tiled
+if __name__ == '__main__':
+    d = DrawAlot()
+    d.drawandupload('ts')
 '''

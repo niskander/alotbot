@@ -33,6 +33,7 @@ class RequestHandler:
         data_encoded = urllib.urlencode(data)
         print 'encoded data: %s' % str(data_encoded)
         request = urllib2.Request(url, data_encoded, self.headers)
+        #print request.read()
         return self.getresponse(request)
 
     def getrequest(self, url):
@@ -53,7 +54,7 @@ class RequestHandler:
         contributed to any). Usually works after 4 tries.
         """
         self.wastetime()
-        attemptsremaining = 10
+        attemptsremaining = 18
         while attemptsremaining > 0:
             try:
                 response = urllib2.urlopen(request, timeout=60)
@@ -61,10 +62,12 @@ class RequestHandler:
             except urllib2.HTTPError as e:
                 #print 'Http request failed. Request = %s' % request.str()
                 print 'Error code: %d. Retrying...' % e.code
-                time.sleep(5)
+                time.sleep(10)
                 attemptsremaining -= 1
         if attemptsremaining == 0:
             raise FailedFetch('nil', 'nil', e.code)
+        else:
+            print 'Success!'
         self.lastapicall = time.clock()
         return response
 

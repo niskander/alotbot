@@ -28,6 +28,7 @@ class RedditThing(object):
         self.ups = data_js['ups']
         self.approved_by = data_js['approved_by'] # e.g. as in r/iama
         self.num_reports = data_js['num_reports']
+        self.js = data_js
         
 
 class RedditPost(RedditThing):
@@ -63,7 +64,10 @@ class RedditComment(RedditThing):
         self.parent_id = data_js['parent_id']
         self.link_id = data_js['link_id']
         if type(data_js['replies']) is not str:
-            self.replies_js = data_js['replies']['data']['children']
+            try:
+                self.replies_js = data_js['replies']['data']['children']
+            except TypeError:
+                self.replies_js = None
         else:
             self.replies_js = None
 
