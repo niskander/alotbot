@@ -1,8 +1,6 @@
-redditbot
-=========
-Framework for a reddit bot (and an example of one)
+The Alot: http://hyperboleandahalf.blogspot.ca/2010/04/alot-is-better-than-you-at-everything.html
 
-The Example Bot
+The Alot Bot
 ===============
 - User: http://www.reddit.com/user/likethisalot
 - Operation:
