@@ -41,6 +41,11 @@ class AlotBot(redditbot.RedditBot):
                 returnvalue = True
                 print comment.name
                 # print 'history: %s' % self.replyhistory_str
+        if returnvalue:
+            print "Selecting this comment: "
+            print comment.body
+        else:
+            print "Skipping comment..."
         return returnvalue
 
     def composereply(self, thing):
@@ -60,7 +65,7 @@ class AlotBot(redditbot.RedditBot):
                 l.append('> %s %s\n\n' % ('alot of', thingafter))
                 print text
                 print 'thingafter: %s' % thingafter
-                thingafter = raw_input('Thingafter? ')
+                thingafter = raw_input('Thingafter? (Enter the name of the thing)')
                 url = self.drawalot.drawandupload(thingafter)
                 l.append('%s\n' % url)
         reply = ''.join(l)

@@ -16,7 +16,7 @@ class RequestHandler:
         useragent = 'Default user agent'
         self.headers = { 'User-Agent' : useragent }
 
-        self.cj = cookielib.LWPCookieJar()
+        self.cj = cookielib.CookieJar()
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cj))
         self.lastapicall = None
         urllib2.install_opener(self.opener)
@@ -26,8 +26,8 @@ class RequestHandler:
     def setuseragent(self, useragent):
         self.headers = { 'User-Agent' : useragent }
     
-    def savecookiefile(self, cookiename):
-        self.cj.save(cookiename)
+    #def savecookiefile(self, cookiename):
+    #    self.cj.save(cookiename)
         
     def postrequest(self, url, data):
         data_encoded = urllib.urlencode(data)
@@ -37,7 +37,10 @@ class RequestHandler:
         return self.getresponse(request)
 
     def getrequest(self, url):
-        return self.getresponse(url)
+        print "url:"
+        print url
+        request = urllib2.Request(url)
+        return self.getresponse(request)
 
     def wastetime(self):
         """Wastes two seconds if necessary, since reddit limits the
@@ -53,21 +56,24 @@ class RequestHandler:
         reddit-dev google group and one on StackOverflow (though I haven't
         contributed to any). Usually works after 4 tries.
         """
+        self.cj.add_cookie_header(request)
         self.wastetime()
         attemptsremaining = 18
         while attemptsremaining > 0:
             try:
-                response = urllib2.urlopen(request, timeout=60)
+                #response = urllib2.urlopen(request, timeout=60)
+                response = self.opener.open(request)
                 break
             except urllib2.HTTPError as e:
                 #print 'Http request failed. Request = %s' % request.str()
-                print 'Error code: %d. Retrying...' % e.code
+                print 'getresponse: Error code: %d. Retrying...' % e.code
+                print e
                 time.sleep(10)
                 attemptsremaining -= 1
         if attemptsremaining == 0:
             raise FailedFetch('nil', 'nil', e.code)
         else:
-            print 'Success!'
+            print 'getresponse: Success!'
         self.lastapicall = time.clock()
         return response
 

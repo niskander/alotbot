@@ -206,7 +206,9 @@ class Google:
     def search_images(query, image_options = None, pages = 1):
         results = []
         for i in range(pages):
+            #print "page ", i
             url = get_image_search_url(query, image_options, i)
+            #print url
             html = get_html(url)
             if html:
                 if Google.DEBUG_MODE:
@@ -216,7 +218,10 @@ class Google:
                 tds = soup.findAll("td")
                 for td in tds:
                     a = td.find("a")
+                    #print a
+                    '''
                     if a and a["href"].find("imgurl") != -1:
+                        print a["href"]
                         res = ImageResult()
                         res.page = i
                         res.index = j
@@ -241,6 +246,12 @@ class Google:
                             res.domain = cite["title"]
                         results.append(res)
                         j = j + 1
+                    '''
+                    if a:
+                        img = a.find("img")
+                        if img:
+                            #print img["src"]
+                            results.append(img["src"])
         return results
     
     @staticmethod
@@ -389,11 +400,14 @@ class ColorType:
     
 def get_image_search_url(query, image_options=None, page=0, per_page=20):
     query = query.strip().replace(":", "%3A").replace("+", "%2B").replace("&", "%26").replace(" ", "+")
+    '''
     url = "http://images.google.com/images?q=%s&sa=N&start=%i&ndsp=%i&sout=1" % (query, page * per_page, per_page)
     if image_options:
         tbs = image_options.get_tbs()
         if tbs:
             url = url + tbs
+    '''
+    url = "https://www.google.ca/search?tbm=isch&source=hp&q=%s&oq=%s&gws_rd=cr" % (query, query)
     return url
     
 def add_to_tbs(tbs, name, value):

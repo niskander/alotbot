@@ -102,6 +102,8 @@ class RedditIterator(object):
         if self.after is not None:
             url = '%s&after=%s' % (url, self.after)
         response = requesthandler.reqhandler.getrequest(url)
+        if not response: return []
+
         js = json.loads(response.read())
         try:
             self.posts_js = js['data']['children']
@@ -122,6 +124,8 @@ class RedditIterator(object):
         """Returns the comments page of the post as js"""
         url = '%s%s.json' % (REDDITURL, post.permalink)
         response = requesthandler.reqhandler.getrequest(url)
+        if not response: return []
+
         js = json.loads(response.read())
         try:
             comments_js = js[1]['data']['children']

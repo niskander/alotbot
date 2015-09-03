@@ -9,8 +9,8 @@ import requesthandler
 from customexceptions import *
 
 # reddit api
-LOGINCALL = 'http://www.reddit.com/api/login'
-REPLYCALL = 'http://www.reddit.com/api/comment'
+LOGINCALL = 'https://www.reddit.com/api/login'
+REPLYCALL = 'https://www.reddit.com/api/comment'
 
 
 class RedditUser(object):
@@ -40,13 +40,14 @@ class RedditUser(object):
             raise FailedFetch(self.username, self.secret, js)
             return
         self.loggedin = True
-        requesthandler.reqhandler.savecookiefile(self.cookiename)
+        #requesthandler.reqhandler.savecookiefile(self.cookiename)
     
     def reply(self, text, parent_type, parent_id, parent_kind):
         # TODO: cookie
         #if not requesthandler.reqhandler.cj.isexpired:
         #    print 'Cookie is not expired.'
         if not self.loggedin or self.modhash is None:
+            print "Not logged in!"
             context = 'posting \'%s\' as %s in reply to %s with id %s' % \
                       (text, self.username, parent_type, parent_id)
             raise LoginRequired(context)
@@ -56,7 +57,8 @@ class RedditUser(object):
         data['uh'] = self.modhash
         data['text'] = text
         data['thing_id'] = ('%s_%s' % (parent_kind, parent_id))
-        data['parent'] = data['thing_id']
+        data['api_type'] = 'json'
+        #data['parent'] = ('%s_%s' % (parent_kind, parent_id))
 
         response = requesthandler.reqhandler.postrequest(REPLYCALL, data)
         #print response.read()

@@ -7,11 +7,10 @@ Required 3rd party libraries:
     - Google-Search (https://github.com/BirdAPI/Google-Search-API)
 """
 
-import Image
-import ImageDraw
-import ImageFont
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
 import math
-import flickrapi
 import urllib
 import webbrowser
 import requesthandler
@@ -24,13 +23,13 @@ from google import *
 
 
 COOKIECUTTER = 'alotbot/images/cookiecutter.png'
-FLICKRFILE = 'alotbot/flickraccount.txt' # contains apikey & apisecret
-IMGURFILE = 'alotbot/imguraccount.txt'
-FONTFILE = 'alotbot/interstate-black.ttf'
+#FLICKRFILE = 'alotbot/flickraccount.txt' # contains apikey & apisecret
+#IMGURFILE = 'alotbot/imguraccount.txt'
+FONTFILE = 'alotbot/VeraBd.ttf'
 IMGURUPLOAD = 'http://api.imgur.com/2/upload.json'
 IMAGEDIR = 'alotbot/images/'
-WIDTH = 0
-HEIGHT = 1
+WIDTH = 0 # index
+HEIGHT = 1 # index
 
 
 class CurlBuffer:
@@ -47,15 +46,16 @@ class DrawAlot(object):
         self.cookiecutter = Image.open(COOKIECUTTER)
         self.alotwidth = self.cookiecutter.size[WIDTH]
         self.alotheight = self.cookiecutter.size[HEIGHT]
-
+        
         # Flickr api (probably don't need this anymore)
-        lines = open(FLICKRFILE).read().splitlines()
-        self.flickrkey = lines[0]
-        self.flickrsecret = lines[1]
-        self.flickr = flickrapi.FlickrAPI(self.flickrkey, self.flickrsecret)
+        #lines = open(FLICKRFILE).read().splitlines()
+        #self.flickrkey = lines[0]
+        #self.flickrsecret = lines[1]
+        #self.flickr = flickrapi.FlickrAPI(self.flickrkey, self.flickrsecret)
+        ###
 
         # Imgur api
-        line = open(IMGURFILE).read().splitlines()
+        #line = open(IMGURFILE).read().splitlines()
         #self.imgurkey = 'c515d926dddc9aa67cf84d13ed3e99d0'
         self.imgurkey = '0f327f3057bbbecb022a2169a4cc51da'
         self.font = ImageFont.truetype(FONTFILE, 25)
@@ -65,10 +65,11 @@ class DrawAlot(object):
         """Returns an image of size 'size' with a tiled background.
         The tile is the image 'tile'.
         """
+        print "Tile image..."
         # x, y offsets because the alot cookiecutter will be masking
         # the top and top-left of the picture
-        xoffset = 100
-        yoffset = 120
+        xoffset = 50
+        yoffset = 50
         tiled = Image.new('RGBA', size, (255, 255, 255, 255))
         rows = math.ceil(size[HEIGHT] / float(tile.size[HEIGHT]))
         cols = math.ceil(size[WIDTH] / float(tile.size[WIDTH]))
@@ -81,7 +82,9 @@ class DrawAlot(object):
 
     def tiledalot(self, thing):
         """Returns an alot of thing"""
+        print "tiledalot... Tile:"
         tile = self.gettile(thing)
+        print tile
         if tile is None: return None
         tiled = self.tileimage(tile, (self.alotwidth, self.alotheight))
         tiledalot = Image.composite(self.cookiecutter,
@@ -89,7 +92,7 @@ class DrawAlot(object):
                                     mask=self.cookiecutter)
         painter = ImageDraw.Draw(tiledalot)
         painter.text((10, 10),
-                     'AN ALOT OF %s' % thing.upper(),
+                     'ALOT OF %s' % thing.upper(),
                      fill=(0, 0, 0), font=self.font)
         tiledalot.show()
         return tiledalot
@@ -97,8 +100,14 @@ class DrawAlot(object):
     def gettile(self, thing):
         """Search google for a picture of 'thing' to use as a tile.
         Returns the an Image object."""
+        
+        print "gettile..."
         options = ImageOptions()
         results = Google.search_images(thing, options)
+        print options
+        print thing
+        print "Results:"
+        print results
         if self.humanaid:
             return self.getapprovedtile(results, thing)
         else:
@@ -118,7 +127,9 @@ class DrawAlot(object):
         as being a picture of 'thing' or the operation is aborted.
         """
         for photo in photos:
-            url = photo.link
+            print "a photo..."
+            #url = photo.link
+            url = photo
             if 'wikimedia' in url.lower(): continue
             webbrowser.open(url)
             prompt = 'Image of %s? (\'y\', \'n\', or \'abort\') ' % thing
@@ -183,8 +194,7 @@ class DrawAlot(object):
     def constructfilename(self, thing):
         return IMAGEDIR + 'alotof' + thing + '.png'
 
-'''
+
 if __name__ == '__main__':
     d = DrawAlot()
-    d.drawandupload('ts')
-'''
+    d.drawandupload('fan')
