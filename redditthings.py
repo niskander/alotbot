@@ -89,11 +89,12 @@ class RedditIterator(object):
         self.index = 0
         self.posts_js = None
         self.after = None
+        self.sorting = 'rising'
 
     def fetchposts(self):
         """Fetches the first or next listing of posts"""
-        url = '%s/r/%s.json?limit=%s' % \
-              (REDDITURL, self.subredditlist, str(self.blocksize))
+        url = '%s/r/%s/%s.json?limit=%s' % \
+              (REDDITURL, self.subredditlist, self.sorting, str(self.blocksize))
 
         # TODO: Restrict search by domain (before fetching)
         # Very easy, but I probably won't do it

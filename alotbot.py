@@ -33,6 +33,8 @@ class AlotBot(redditbot.RedditBot):
 
     def wantcomment(self, comment):
         if comment.name in self.replyhistory_str: return False
+        if comment.author == self.username: return False
+
         returnvalue = False
         for selectorstr in self.selectorstrs:
             if selectorstr in comment.body.lower():
