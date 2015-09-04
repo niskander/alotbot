@@ -132,10 +132,12 @@ class DrawAlot(object):
             url = photo
             if 'wikimedia' in url.lower(): continue
             webbrowser.open(url)
-            prompt = 'Image of %s? (\'y\', \'n\', or \'abort\') ' % thing
+            prompt = 'Image of %s? (\'y\', \'n\', \'u\' or \'abort\') ' % thing
             answer = raw_input(prompt)
             # TODO: Find a way to automatically get good images
-            if answer == 'y':
+            if answer == 'u':
+                url = raw_input('Url: ')
+            if answer == 'y' or answer == 'u':
                 tile = self.urltoimage(url)
                 r = raw_input('Resize? (\'y\' or \'n\')')
                 if r == 'y':
@@ -197,4 +199,4 @@ class DrawAlot(object):
 
 if __name__ == '__main__':
     d = DrawAlot()
-    d.drawandupload('fan')
+    d.drawandupload('bots')

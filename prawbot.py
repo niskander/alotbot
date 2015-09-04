@@ -5,6 +5,7 @@ import time
 import praw
 import drawalot
 import os
+import sys
 
 __author__ = 'Nancy Iskander; nancy.iskander@mail.utoronto.ca'
 
@@ -25,12 +26,16 @@ class PrawAlotBot:
         self.signature = "\n\n [ALOT](%s), [AlOTBOT](%s)\n" % (ALOTURL, ALOTBOTURL)
 
     def wantcomment(self, comment):
+        if not hasattr(comment, "body"): return False
         if comment.id in self.already_responded: return False
-        if comment.author.name == self.username: return False
+        if hasattr(comment, "author") and hasattr(comment.author, "name") and comment.author.name == self.username: return False
 
-        if 'alot' in comment.body.lower():
+        index = comment.body.lower().find('alot of')
+        
+        if index != -1:
             print "Selected comment:"
-            print comment.body
+            print comment.body[max(index-50,0):max(index+50,len(comment.body))]
+            
             os.system('say "Alotbot needs input"')
             p = raw_input("Proceed? ('y'/'n') ")
             if p == 'y': 
@@ -38,32 +43,41 @@ class PrawAlotBot:
 
         print "Skipping comment..."
         return False
+
+    def processcomment(self, comment):
+        if self.wantcomment(comment):
+            text = self.composereply(comment)
+            comment.reply(text)
+            comment.upvote()
+            print "Reply posted!"
+            self.already_responded.append(comment.id)
     
-    def loop(self):
+    def recentloop(self):
         while True:
-            '''
-            subreddit = r.get_subreddit("askreddit")
-            for submission in subreddit.get_hot(limit=10):
-                forest_comments = submission.comments
-                flat_comments = praw.helpers.flatten_tree(forest_comments)
-                for comment in flat_comments:
-                    if self.wantcomment(comment):
-                        # do something
-                        print "Found comment!"
-            '''
             # Get all recent comments
-            print "In loop!"
+            print "In recent comments loop!"
 
             all_comments = self.r.get_comments('all', limit=100)
             for comment in all_comments:
-                if self.wantcomment(comment):
-                    text = self.composereply(comment)
-                    comment.reply(text)
-                    print "Reply posted!"
-                    self.already_responded.append(comment.id)
+               self.processcomment(comment) 
 
             print "Will sleep for a bit. Time = %s" % time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
-            time.sleep(30)
+            time.sleep(3)
+
+    def hotloop(self):
+        while True:
+            # Get all hot threads
+            print "In hot comments loop!"
+
+            subreddit = self.r.get_subreddit("all")
+            for submission in subreddit.get_hot(limit=100):
+                forest_comments = submission.comments
+                flat_comments = praw.helpers.flatten_tree(forest_comments)
+                for comment in flat_comments:
+                    self.processcomment(comment)
+
+            print "Will sleep for a bit. Time = %s" % time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+            time.sleep(300)
 
     def composereply(self, comment):
         thingafter = raw_input('Thingafter? (Enter the name of the thing) ')
@@ -71,7 +85,30 @@ class PrawAlotBot:
         text = "> alot of %s\n\n %s" % (thingafter, url)
         return text
     
+def usage():
+    print "Usage: python prawbot.py [-r|--recent|-h|--hot]"
+    print "\t-r|--recent: Looks at all recent comments"
+    print "\t-h|--hot   : Looks at comments in all hot threads"
+    sys.exit(0)
 
 if __name__ == "__main__":
+    args = sys.argv
+    if len(args) > 2:
+        usage()
+
+    recent = True # default is recent
+    if len(args) == 2:
+        arg = args[1]
+        if arg == "-r" or arg == "--recent":
+            recent = True
+        elif arg == "-h" or arg == "--hot":
+            recent = False
+        else:
+            usage()
+            
     alotbot = PrawAlotBot()
-    alotbot.loop()
+    if recent:
+        alotbot.recentloop()
+    else: 
+        alotbot.hotloop()
+    
