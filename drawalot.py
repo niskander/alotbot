@@ -13,7 +13,6 @@ from PIL import ImageFont
 import math
 import urllib
 import webbrowser
-import requesthandler
 import os.path
 import json
 import pycurl
@@ -23,8 +22,6 @@ from google import *
 
 
 COOKIECUTTER = 'alotbot/images/cookiecutter.png'
-#FLICKRFILE = 'alotbot/flickraccount.txt' # contains apikey & apisecret
-#IMGURFILE = 'alotbot/imguraccount.txt'
 FONTFILE = 'alotbot/VeraBd.ttf'
 IMGURUPLOAD = 'http://api.imgur.com/2/upload.json'
 IMAGEDIR = 'alotbot/images/'
@@ -199,4 +196,4 @@ class DrawAlot(object):
 
 if __name__ == '__main__':
     d = DrawAlot()
-    d.drawandupload('bots')
+    d.drawandupload('t-shirt')
