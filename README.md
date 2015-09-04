@@ -13,8 +13,7 @@ The Alot Bot
 Libraries Used
 ===============
 - PRAW: http://praw.readthedocs.org
-- Beautiful Soup: http://www.crummy.com/software/BeautifulSoup/
 - Google Search: https://github.com/BirdAPI/Google-Search-API
   (I've had to modify this to get it to work with the new google image search; planning to commit back to the original repo after clean up)
 - Python Image Library: http://www.pythonware.com/products/pil/
-- urllib, urllib2, cookielib, pycurl
+- urllib, pycurl
