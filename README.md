@@ -4,11 +4,12 @@ The Alot Bot
 ===============
 - User: http://www.reddit.com/user/likethisalot
 - Operation:
-  1. Finds comments containing "alot of [x]"
-  2. Gets an image of x from google image search 
-  3. Draws an alot of x using the approved image and a pre-drawn cookiecutter alot
+  1. Finds comments containing "alot of [noun-phrase]"
+  2. Gets an image of [noun-phrase] from google image search 
+  3. Draws an alot of using that image and a pre-drawn cookiecutter alot
   4. Uploads the created image to imgur and posts the link in a reply
 - The mythical alot creature was created by HyperboleAndAHalf.blogspot.ca
+- Compatible with Python 3
 
 Libraries Used
 ===============
@@ -16,4 +17,6 @@ Libraries Used
 - Google Search: https://github.com/BirdAPI/Google-Search-API
   (I've had to modify this to get it to work with the new google image search; planning to commit back to the original repo after clean up)
 - Python Image Library: http://www.pythonware.com/products/pil/
-- urllib, pycurl
+- ImgurAPI
+- NLTK, stanford parser
+

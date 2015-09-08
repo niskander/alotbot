@@ -1,5 +1,5 @@
+#!/usr/bin/python
 # drawalot.py
-
 
 """A module for drawing alots using pictures from the internet
 Required 3rd party libraries: 
@@ -11,30 +11,20 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 import math
-import urllib
+import urllib.request
 import webbrowser
 import os.path
-import json
-import pycurl
-import StringIO
-from base64 import b64encode
+from imgurpython import ImgurClient
 from google import *
 
+__author__ = 'Nancy Iskander; nancy.iskander@mail.utoronto.ca'
 
 COOKIECUTTER = 'alotbot/images/cookiecutter.png'
 FONTFILE = 'alotbot/VeraBd.ttf'
-IMGURUPLOAD = 'http://api.imgur.com/2/upload.json'
 IMAGEDIR = 'alotbot/images/'
+IMGURACCOUNT = 'alotbot/imguraccount.txt'
 WIDTH = 0 # index
 HEIGHT = 1 # index
-
-
-class CurlBuffer:
-   def __init__(self):
-       self.contents = ''
-
-   def body_callback(self, buf):
-       self.contents = self.contents + buf
 
 
 class DrawAlot(object):
@@ -44,17 +34,12 @@ class DrawAlot(object):
         self.alotwidth = self.cookiecutter.size[WIDTH]
         self.alotheight = self.cookiecutter.size[HEIGHT]
         
-        # Flickr api (probably don't need this anymore)
-        #lines = open(FLICKRFILE).read().splitlines()
-        #self.flickrkey = lines[0]
-        #self.flickrsecret = lines[1]
-        #self.flickr = flickrapi.FlickrAPI(self.flickrkey, self.flickrsecret)
-        ###
-
         # Imgur api
-        #line = open(IMGURFILE).read().splitlines()
-        #self.imgurkey = 'c515d926dddc9aa67cf84d13ed3e99d0'
-        self.imgurkey = '0f327f3057bbbecb022a2169a4cc51da'
+        lines = open(IMGURACCOUNT).read().splitlines()
+        imgurkey = lines[0]
+        imgursecret = lines[1]
+        self.imgurclient = ImgurClient(imgurkey, imgursecret)
+
         self.font = ImageFont.truetype(FONTFILE, 25)
         self.humanaid = humanaid
 
@@ -62,7 +47,7 @@ class DrawAlot(object):
         """Returns an image of size 'size' with a tiled background.
         The tile is the image 'tile'.
         """
-        print "Tile image..."
+        print("Tile image...")
         # x, y offsets because the alot cookiecutter will be masking
         # the top and top-left of the picture
         xoffset = 50
@@ -79,9 +64,9 @@ class DrawAlot(object):
 
     def tiledalot(self, thing):
         """Returns an alot of thing"""
-        print "tiledalot... Tile:"
+        print("tiledalot... Tile:")
         tile = self.gettile(thing)
-        print tile
+        print(tile)
         if tile is None: return None
         tiled = self.tileimage(tile, (self.alotwidth, self.alotheight))
         tiledalot = Image.composite(self.cookiecutter,
@@ -98,13 +83,13 @@ class DrawAlot(object):
         """Search google for a picture of 'thing' to use as a tile.
         Returns the an Image object."""
         
-        print "gettile..."
+        print("gettile...")
         options = ImageOptions()
         results = Google.search_images(thing, options)
-        print options
-        print thing
-        print "Results:"
-        print results
+        print(options)
+        print(thing)
+        print("Results:")
+        #print(results)
         if self.humanaid:
             return self.getapprovedtile(results, thing)
         else:
@@ -112,7 +97,7 @@ class DrawAlot(object):
 
     def urltoimage(self, url):
         #print url
-        (filename, headers) = urllib.urlretrieve(url)
+        (filename, headers) = urllib.request.urlretrieve(url)
         #print headers
         #print filename
         image = Image.open(filename)
@@ -124,19 +109,19 @@ class DrawAlot(object):
         as being a picture of 'thing' or the operation is aborted.
         """
         for photo in photos:
-            print "a photo..."
+            print("a photo...")
             #url = photo.link
             url = photo
             if 'wikimedia' in url.lower(): continue
             webbrowser.open(url)
             prompt = 'Image of %s? (\'y\', \'n\', \'u\' or \'abort\') ' % thing
-            answer = raw_input(prompt)
+            answer = input(prompt)
             # TODO: Find a way to automatically get good images
             if answer == 'u':
-                url = raw_input('Url: ')
+                url = input('Url: ')
             if answer == 'y' or answer == 'u':
                 tile = self.urltoimage(url)
-                r = raw_input('Resize? (\'y\' or \'n\')')
+                r = input('Resize? (\'y\' or \'n\')')
                 if r == 'y':
                     tilesize = input('Tile size: ')
                     tile = tile.resize(tilesize)
@@ -146,38 +131,10 @@ class DrawAlot(object):
                 
     def uploadimage(self, filename):
         """Uploads the image at 'filename' to imgur and returns the url"""
-        requesturl = IMGURUPLOAD
-        data = {}
-        data['key'] = self.imgurkey
-        data['image'] = b64encode(open(filename, 'rb').read())
-        '''
-        response = requesthandler.reqhandler.postrequest(requesturl, data)
-        s = response.read()
-        print s
-        js = json.loads(s)
-        try:
-            url = js['upload']['links']['original']
-            print url
-            return url
-        except KeyError:
-            # raise exception
-            pass
-        '''
-        b = CurlBuffer()
-        c = pycurl.Curl()
-        values = [ \
-          ("key", self.imgurkey), \
-          ("image", data['image'])]
-        c.setopt(c.URL, "http://api.imgur.com/2/upload.json")
-        c.setopt(c.HTTPPOST, values)
-        c.setopt(c.WRITEFUNCTION, b.body_callback)
-        c.perform()
-        c.close()
-        print b.contents
-        js = json.loads(b.contents)
-        url = js['upload']['links']['original']
-        # TODO: exception
-        print url
+        response = self.imgurclient.upload_from_path(filename, anon=True)
+        print(response)
+        url = response['link']
+        print(url)
         return url
 
     def drawandupload(self, thing):
@@ -196,4 +153,5 @@ class DrawAlot(object):
 
 if __name__ == '__main__':
     d = DrawAlot()
-    d.drawandupload('t-shirt')
+    thing = input("Draw what? ")
+    d.drawandupload(thing)
