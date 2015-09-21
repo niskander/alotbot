@@ -32,7 +32,7 @@ class AlotOfBrain:
                 if index != -1 \
                 and len(tokenized_sents[i]) > index+1 \
                 and tokenized_sents[i][index+1] == 'of':
-                    filtered_sents.append(' '.join(tokenized_sents[i][index+2:]))
+                    filtered_sents.append(' '.join(tokenized_sents[i][index:]))
         parsed_sents = self.parser.raw_parse_sents(filtered_sents)
         # All parsed sents start with:
         # (ROOT
@@ -40,18 +40,26 @@ class AlotOfBrain:
         #     (NP
         #       (NP (NN alot))
         #       (PP (IN of) (NP ... )))
-        # Actually, they start after 'alot of', so we need to find
-        # the first and shallowest (closest to the leafs) NP
+        # we need to find the first and shallowest (closest to the leafs) NP
+        # after the 'alot' NP
         things = []
         for line in parsed_sents:
             for tree in line:
-                if tree.height() < 2: continue
-                firstNP = tree[0][0]
-                things.append(' '.join(firstNP.leaves()))
+                tree.pretty_print()
+                alot_pos = list(tree.leaf_treeposition(0))
+                thing_pos = alot_pos[:len(alot_pos)-3]
+                thing_pos.extend([1, 1])
+                print(thing_pos)
+                firstNP = tree[tuple(thing_pos)]
+                subtree = firstNP
+                # Get the shallowest NP that's a descendent of that
+                while subtree[0].label() == 'NP':
+                    subtree = subtree[0]
+                things.append(' '.join(subtree.leaves()))
         print(things)
         return things
         
 if __name__ == "__main__":
     alotofbrain = AlotOfBrain()
-    text = raw_input("Enter text: ")
+    text = input("Enter text: ")
     alotofbrain.alotofwhat(text)
